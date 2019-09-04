@@ -12,33 +12,39 @@ SELECT DISTINCT A.person_id AS 환자ID
                        , drug_era_end_date  - drug_era_start_date  + 1 AS exposure_period_days
 		       ,drug_era_end_date - drug_era_start_date + '1 days'  AS exposure_period_days
 		FROM omop_cdm.drug_era_gap_14 A
+		FROM drug_era_2018 A
 		LEFT JOIN -- 탐색기간 전 아래 진단명 가진 경우 제외 (Exclusion Criteria)
 			(select * from omop_cdm.condition_occurrence where condition_source_value LIKE any 
-				(array[ 'B15%'  ,'B16%'  ,'B17%'  ,'B18%'	 ,'B19%'  ,'B25.1%' ,'B58.1%' ,'B94.2%' ,'C22%'  ,'K70%' 
-				,'K71%'  ,'K72%'  ,'K73%'  ,'K74%'  ,'K75%'  ,'K76%'  ,'K77%'  ,'P35.3%' ])) B  
+				(array['B15%','B16%','B17%','B18%','B19%','B25.1%','B58.1%','B94.2%','C22%','K70%','K71%','K72%','K73%','K74%','K75%','K76%','K77%','P35.3%'])) B  
+				(array['C220', 'C227', 'C.229'])) B 
 	        ON A.person_id = B.person_id AND B.condition_start_date < A.drug_era_start_date+7
+	 	ON A.person_id = B.person_id AND B.condition_start_date < A.drug_era_start_date+'7 days'
 		LEFT JOIN -- 탐색기간동안 다음 진단명이 추가된 경우  -- HOI 진단조건 
 			( select person_id,condition_start_date, condition_source_value from omop_cdm.condition_occurrence
 			rence where condition_concept_id in 
 					(SELECT concept_id FROM concept WHERE concept_id IN 
 						(SELECT concept_id_2 FROM concept_relationship WHERE concept_id_1 IN
 									(SELECT concept_id FROM concept WHERE concept_code LIKE any 
-                                    (array[  'K71.0%'	 ,'K71.1%'  ,'K71.10%' ,'K71.11%' ,'K71.2%'  ,'K71.3%'  ,'K71.4%'  ,'K71.5%'  ,'K71.50%'
-									,'K71.51%' ,'K71.6%'  ,'K71.7%'  ,'K71.8%'  ,'K71.9%'  ]) 
+                                    					(array[ 'K71.0%','K71.1%','K71.10%','K71.11%','K71.2%','K71.3%','K71.4%','K71.5%','K71.50%'
+									,'K71.51%','K71.6%','K71.7%','K71.8%','K71.9%']) 
+									(array['K7200', 'K7201', 'B162', 'B169', 'B179'])
 									AND vocabulary_id in ('ICD10', 'ICD10CM')) AND relationship_id = 'Maps to'))) C 
-											ON A.person_id = C.person_id 
-					 AND C.condition_start_date between A.drug_era_start_date+7 and a.drug_era_end_date + 14 -- blackout + exclusion period / exposure period
+		ON A.person_id = C.person_id AND C.condition_start_date between A.drug_era_start_date+7 and a.drug_era_end_date + 14 -- blackout + exclusion period / exposure period
+		ON A.person_id = C.person_id AND C.condition_start_date BETWEEN A.drug_era_start_date + '7 days' AND A.drug_era_end_date + '14 days'
+		
 		LEFT JOIN -- 탐색기간 전 HOI 진단조건이 이미 있었으면 제외 
 			(select * from omop_cdm.condition_occurrence where condition_source_value LIKE any 
-				(array[  'K71.0%'	 ,'K71.1%'  ,'K71.10%' ,'K71.11%' ,'K71.2%'  ,'K71.3%'  ,'K71.4%'  ,'K71.5%'  ,'K71.50%'
-				,'K71.51%' ,'K71.6%'  ,'K71.7%'  ,'K71.8%'  ,'K71.9%' ])) D  
-			ON A.person_id = D.person_id AND D.condition_start_date < A.drug_era_start_date+7
+				(array[ 'K71.0%','K71.1%','K71.10%','K71.11%','K71.2%','K71.3%','K71.4%','K71.5%','K71.50%','K71.51%','K71.6%','K71.7%','K71.8%','K71.9%'])) D 
+				(array['K7200', 'K7201', 'B162', 'B169', 'B179'])) D 
+			ON A.person_id = D.person_id AND D.condition_start_date < A.drug_era_start_date+'7 days'
 		LEFT JOIN 
 			(SELECT person_id, measurement_date AS E_measurement_date,value_as_number 
 			FROM omop_cdm.measurement WHERE  measurement_concept_id in ('3006923') )E -- ALT
 			ON A.person_id = E.person_id AND 
 			E_measurement_date BETWEEN drug_era_start_date+3  AND drug_era_end_date+3
-		 INNER JOIN person P ON A.person_id = P.person_id  	
+		
+		INNER JOIN person P ON A.person_id = P.person_id  	
+		
 		WHERE
 				A.drug_concept_id IN (	
 		'1112807', 		-- 1. A: Aspirin
@@ -53,9 +59,10 @@ SELECT DISTINCT A.person_id AS 환자ID
 		,'1146810'		-- 11. O1: Piroxicam
 		,'1150345'		-- 12. O2: Meloxicam 
 		,'1125315'		-- 13. T: Acetaminophen
+		'715939' -- Escitalopram
 		) 
 		AND
-		 drug_era_end_date - drug_era_start_date + 1  > 7	
+		 drug_era_end_date - drug_era_start_date + '1 days'  > '7 days'	
 		AND
 		B.person_id is NULL
 		AND  
