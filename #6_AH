@@ -11,7 +11,6 @@ SELECT DISTINCT A.person_id AS 환자ID
                        , drug_era_end_date AS nsaids_end_date
                        , drug_era_end_date  - drug_era_start_date  + 1 AS exposure_period_days
 		       ,drug_era_end_date - drug_era_start_date + '1 days'  AS exposure_period_days
-		FROM omop_cdm.drug_era_gap_14 A
 		FROM drug_era_2018 A
 		LEFT JOIN -- 탐색기간 전 아래 진단명 가진 경우 제외 (Exclusion Criteria)
 			(select * from omop_cdm.condition_occurrence where condition_source_value LIKE any 
