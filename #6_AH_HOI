@@ -45,3 +45,6 @@ SELECT DISTINCT A.person_id AS 환자ID
 		AND month_of_birth BETWEEN 1 AND 12 
 ) Z
 GROUP BY Z.투여성분명 ORDER BY Z.투여성분명 DESC
+
+
+
