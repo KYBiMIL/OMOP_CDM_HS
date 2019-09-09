@@ -2,42 +2,30 @@
  
 --#6 간독성_B
 
-SELECT 투여성분명, count(환자ID)
+SELECT Z.투여성분명, count(환자ID)
 FROM 
 (
 SELECT DISTINCT A.person_id AS 환자ID
                       ,(SELECT concept_name FROM concept WHERE concept_id = A.drug_concept_id) AS 투여성분명
                        , drug_era_start_date AS nsaids_start_date
                        , drug_era_end_date AS nsaids_end_date
-                       , drug_era_end_date  - drug_era_start_date  + 1 AS exposure_period_days
+                       , drug_era_end_date  - drug_era_start_date  + '1 days' AS exposure_period_days
 		FROM drug_era_2018 A
+		
 		LEFT JOIN -- 탐색기간 전 아래 진단명 가진 경우 제외 (Exclusion Criteria)
-			  (select * from omop_cdm.condition_occurrence where condition_source_value LIKE any 
-				(array[ 'B15%'  ,'B16%'  ,'B17%'  ,'B18%'	 ,'B19%'  ,'B25.1%' ,'B58.1%' ,'B94.2%' ,'C22%'  ,'K70%' 
-				,'K71%'  ,'K72%'  ,'K73%'  ,'K74%'  ,'K75%'  ,'K76%'  ,'K77%'  ,'P35.3%' ])) B  
-	  ON A.person_id = B.person_id AND B.condition_start_date < A.drug_era_start_date+7
+			  (select * 
+			  from condition_occurrence 
+			  where condition_source_value LIKE any(array['C220', 'C227', 'C229'])) B  
+	  	ON A.person_id = B.person_id AND B.condition_start_date < A.drug_era_start_date + 7
 		
-    INNER JOIN person P ON A.person_id = P.person_id  	
+    		INNER JOIN person P ON A.person_id = P.person_id  	
 		
-    WHERE
-		A.drug_concept_id IN (	
-		'1112807', 		-- 1. A: Aspirin
-		'1178663' 		-- 2. C1: Indomethacin
-		,'1124300' 		-- 3. C2: Diclofenac
-		,'19029393' 	-- 4. C3: Aceclofenac
-		,'1136980' 		-- 5. C4: Ketorolac
-		,'1195492'		-- 6. C5: Etodolac
-		,'1177480'		-- 8. F2: Ibuprofen
-		,'1185922'		-- 9. F3: Ketoprofen 
-		,'1115008'		-- 10. F4: Naproxen
-		,'1146810'		-- 11. O1: Piroxicam
-		,'1150345'		-- 12. O2: Meloxicam 
-		,'1125315'		-- 13. T: Acetaminophen
-		) 
-		AND drug_era_end_date - drug_era_start_date + 1  > 7	
+    		WHERE
+		A.drug_concept_id IN ('715939') 
+		AND drug_era_end_date - drug_era_start_date + '1 days' > '7 days'	
 		AND B.person_id is NULL
 		AND CAST(A.drug_era_start_date- CAST(year_of_birth || '-'|| month_of_birth|| '-'|| day_of_birth AS DATE) AS INT )/365 >= 18 -- 18세 미만 제외
 		AND month_of_birth BETWEEN 1 AND 12 
 ) Z
 
-GROUP BY 투여성분명ORDER BY 1 DESC
+GROUP BY Z.투여성분명 ORDER BY Z.투여성분명 DESC
