@@ -34,7 +34,8 @@ SELECT DISTINCT A.person_id AS 환자ID
 		
 		INNER JOIN person P ON A.person_id = P.person_id  	
 		
-		WHERE drug_era_end_date - drug_era_start_date + '1days'  > '90 days'	-- 90일 이상 약제사용 
+		WHERE A.drug_concept_id IN ('1112807') -------- Aspirin
+		AND drug_era_end_date - drug_era_start_date + '1days'  > '90 days'	-- 90일 이상 약제사용 
 		AND B.person_id is NULL
         	AND BB.person_id is NOT NULL
 		AND CAST(A.drug_era_start_date- CAST(year_of_birth || '-'|| month_of_birth|| '-'|| day_of_birth AS DATE) AS INT )/365 >= 18 -- 18세 미만 제외
