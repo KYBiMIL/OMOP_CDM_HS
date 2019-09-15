@@ -3,11 +3,14 @@
 --#4 심혈관계_A Population
 --## 1. NSAIDs 
 
-SELECT count(환자ID) AS NSAIDs_Population_N
+SELECT z.투여성분명, count(환자ID) AS NSAIDs_Population_N
 FROM
 (
 SELECT DISTINCT A.person_id AS 환자ID
-                       , drug_era_start_date AS nsaids_start_date
+                       ,(SELECT concept_name
+        		FROM concept 
+        		WHERE concept_id=A.drug_concept_id) AS 투여성분명
+		       , drug_era_start_date AS nsaids_start_date
                        , drug_era_end_date AS nsaids_end_date
                        , drug_era_count AS multiuse_cnt
                        , drug_era_end_date  - drug_era_start_date  + 1 AS exposure_period_days
