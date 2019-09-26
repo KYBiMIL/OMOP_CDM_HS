@@ -1,0 +1,42 @@
+--문서번호 #4-1
+
+--#4_without(DRUG-)_TOTAL
+--## 1. NSAIDs 
+
+SELECT count(환자ID) AS NSAIDs_Population_N
+FROM
+(
+   SELECT DISTINCT A.person_id AS 환자ID
+           ,(SELECT concept_name
+        		FROM concept 
+        		WHERE concept_id=A.drug_concept_id) AS 투여성분명
+		        ,drug_era_start_date AS nsaids_start_date
+            ,drug_era_end_date AS nsaids_end_date
+            ,drug_exposure_count AS multiuse_cnt
+            ,drug_era_end_date  - drug_era_start_date  + interval '1 days' AS exposure_period_days
+		
+		FROM drug_era_2018 A
+		
+		LEFT JOIN -- 탐색기간 전 아래 진단명 가진 경우 제외
+			(select * from condition_occurrence where condition_source_value LIKE any 
+				(array['I11%' ,'I13%','I63%','I64%','I20%','I21%','I24%','I25%' ])) B  
+		ON A.person_id = B.person_id AND B.condition_start_date < A.drug_era_start_date+180
+--			RA또는 OA진단 - n수가 너무 줄어들어서 빼고 결과를 상세로 보기로 함 10.11 강동윤 선생님과 협의 
+	   		
+		LEFT JOIN -- 탐색기간 전 아래 진단명 가진 경우만 포함 RA, OA
+			(select * from condition_occurrence where condition_source_value LIKE any 
+				(array['M167','M169','M170','M171','M174','M175','M179','M180','M181',
+				'M184','M185','M189','M190','M192','M198','M199','M05','M06','M07','M10','M11','M12','M13','M14'])) BB  
+		ON A.person_id = BB.person_id AND BB.condition_start_date < A.drug_era_start_date+28
+--			RA또는 OA진단 - n수가 너무 줄어들어서 빼고 보기로 함 10.11 강동윤 선생님과 협의 
+		 
+		INNER JOIN person P ON A.person_id = P.person_id  	
+		
+		WHERE A.drug_concept_id NOT IN(     ---------------------WITH QUERY와 다르게 약물 하나씩 기입하여 실행시켜야함(python 필요)
+			'1125315' ---- acetaminophen
+			) 
+		AND drug_era_end_date - drug_era_start_date + interval '1 days' > '180 days'	-- 180일 이상 약제사용 
+		AND B.person_id is NULL
+    AND BB.person_id is NOT NULL
+		AND CAST(A.drug_era_start_date- CAST(year_of_birth || '-'|| month_of_birth|| '-'|| day_of_birth AS DATE) AS INT )/365 >= 18 -- 18세 미만 제외
+) Z
